@@ -103,7 +103,9 @@ class MongoProductRepository(ProductRepository):
         product. Returns the updated product.
         """
         LOGGER.info("update_product(%r, %r)", product.id, product.name)
-        raise NotImplementedError("TODO: implement 'update_product' using MongoDB")
+        # raise NotImplementedError("TODO: implement 'update_product' using MongoDB")
+        self._db[PRODUCT_COLLECTION_NAME].replace_one({"id": product.id}, product.dict())
+        return product
 
     def list_products(self, query: ProductQuery) -> ProductPage:
         """Filter, sort and paginate products according to ``query``.
@@ -114,7 +116,33 @@ class MongoProductRepository(ProductRepository):
         name or description. Ties on ``sort_field`` are broken by ``id`` ascending.
         """
         LOGGER.info("list_products(%r)", query)
-        raise NotImplementedError("TODO: implement 'list_products' using MongoDB")
+        # raise NotImplementedError("TODO: implement 'list_products' using MongoDB")
+        # Implementing list_products method to filter, sort, and paginate products based on the provided query.
+        filter_query = {}
+        if query.price_min is not None:
+            filter_query["price"] = {"$gte": query.price_min}
+        if query.price_max is not None:
+            filter_query.setdefault("price", {})["$lte"] = query.price_max
+        if query.category is not None:
+            filter_query["category"] = query.category
+        if query.brand is not None:
+            filter_query["brand"] = query.brand
+        if query.search_text is not None:
+            filter_query["$or"] = [
+                {"name": {"$regex": query.search_text, "$options": "i"}},
+                {"description": {"$regex": query.search_text, "$options": "i"}}
+            ]
+        # Apply the filter to the database query
+        cursor = self._db[PRODUCT_COLLECTION_NAME].find(filter_query)
+        # Sorting
+        if query.sort_field:
+            sort_order = 1 if query.sort_order == "asc" else -1
+            cursor = cursor.sort(query.sort_field, sort_order)
+        # Pagination
+        total_count = cursor.count()
+        cursor = cursor.skip((query.page - 1) * query.page_size).limit(query.page_size)
+        products = [Product(**doc) for doc in cursor]
+        return ProductPage(products=products, total=total_count, page=query.page, page_size=query.page_size)
 
     def delete_product(self, product_id: str) -> None:
         """Delete the product with ``product_id``; returns ``None``.
@@ -122,7 +150,8 @@ class MongoProductRepository(ProductRepository):
         An unknown or malformed id raises ``repository.EntityNotFoundError``.
         """
         LOGGER.info("delete_product(%r)", product_id)
-        raise NotImplementedError("TODO: implement 'delete_product' using MongoDB")
+        # raise NotImplementedError("TODO: implement 'delete_product' using MongoDB")
+        self._db[PRODUCT_COLLECTION_NAME].delete_one({"id": product_id})
 
     def get_stats(self) -> CatalogStats:
         """Return whole-catalog statistics.
@@ -135,7 +164,17 @@ class MongoProductRepository(ProductRepository):
         ``by_category`` (they still count in ``total`` / ``average_price``).
         """
         LOGGER.info("get_stats()")
-        raise NotImplementedError("TODO: implement 'get_stats' using MongoDB")
+        # raise NotImplementedError("TODO: implement 'get_stats' using MongoDB")
+        total = self._db[PRODUCT_COLLECTION_NAME].count_documents({})
+        by_category = {}
+        pipeline = [
+            {"$match": {"category": {"$ne": None}}},
+            {"$group": {"_id": "$category", "count": {"$sum": 1}}},
+            {"$sort": {"_id": 1}}
+        ]
+        for doc in self._db[PRODUCT_COLLECTION_NAME].aggregate(pipeline):
+            by_category[doc["_id"]] = doc["count"]
+        return CatalogStats(total=total, by_category=by_category)
 
     def ensure_indexes(self) -> None:
         """Ensure backend indexes exist. Idempotent."""
