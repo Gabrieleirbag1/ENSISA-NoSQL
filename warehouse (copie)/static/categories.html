@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Catégories — Catalogue produits</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>Catégories</h1>
+  </header>
+
+  <nav class="navbar" aria-label="Navigation">
+    <a href="/">Produits</a>
+    <a href="/categories" class="active" aria-current="page">Catégories</a>
+    <a href="/brands">Marques</a>
+  </nav>
+
+  <main>
+    <div id="error-banner" class="banner" role="alert" hidden>
+      <span id="error-banner-text"></span>
+      <button id="btn-banner-close" class="banner-close" type="button" aria-label="Fermer">&times;</button>
+    </div>
+
+    <section>
+      <table>
+        <thead>
+          <tr>
+            <th>Nom actuel</th>
+            <th>Nouveau nom</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="categories-body"></tbody>
+      </table>
+      <p id="empty-message" class="muted" hidden>Aucune catégorie.</p>
+    </section>
+
+    <p id="status-message" class="muted" role="status" hidden></p>
+  </main>
+
+  <script src="/static/categories.js"></script>
+</body>
+</html>
