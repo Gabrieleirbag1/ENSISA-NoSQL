@@ -16,6 +16,7 @@ import logging
 
 from pymongo import MongoClient
 
+import repository
 from models import Brand, CatalogStats, Category, Product, ProductPage, ProductQuery
 from repository import ProductRepository
 
