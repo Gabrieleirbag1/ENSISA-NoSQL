@@ -26,7 +26,6 @@ LOGGER = logging.getLogger(__name__)
 # NOT a performance hint (no mention of indexes, $text, keyset, projections).
 PRODUCT_COLLECTION_NAME = "product"
 
-
 class MongoProductRepository(ProductRepository):
     """MongoDB-backed repository. The 17 methods below are the same contract as
     ``InMemoryProductRepository``, implemented on MongoDB.
@@ -189,7 +188,9 @@ class MongoProductRepository(ProductRepository):
         unknown name.
         """
         LOGGER.info("list_categories()")
-        raise NotImplementedError("TODO: implement 'list_categories' using MongoDB")
+        # raise NotImplementedError("TODO: implement 'list_categories' using MongoDB")
+        cursor = self._db[PRODUCT_COLLECTION_NAME].distinct("category", {"category": {"$ne": None}})
+        return sorted([Category(id=cat, name=cat) for cat in cursor], key=lambda c: c.name)
 
     def get_category(self, category_id: str) -> Category | None:
         """Return the category with ``category_id`` or ``None``.
@@ -198,7 +199,11 @@ class MongoProductRepository(ProductRepository):
         are created implicitly when products are saved with an unknown name.
         """
         LOGGER.info("get_category(%r)", category_id)
-        raise NotImplementedError("TODO: implement 'get_category' using MongoDB")
+        # raise NotImplementedError("TODO: implement 'get_category' using MongoDB")
+        cursor = self._db[PRODUCT_COLLECTION_NAME].find({"category": category_id})
+        if cursor:
+            return Category(id=cursor[0]["category"], name=cursor[0]["category"])
+        return None
 
     def rename_category(self, category_id: str, new_name: str) -> Category:
         """Rename the category; ``new_name`` is trimmed.
@@ -212,7 +217,14 @@ class MongoProductRepository(ProductRepository):
         Returns the renamed entity.
         """
         LOGGER.info("rename_category(%r, %r)", category_id, new_name)
-        raise NotImplementedError("TODO: implement 'rename_category' using MongoDB")
+        # raise NotImplementedError("TODO: implement 'rename_category' using MongoDB")
+        result = self._db[PRODUCT_COLLECTION_NAME].update_many(
+            {"category": category_id},
+            {"$set": {"category": new_name}}
+        )
+        if result.matched_count == 0:
+            raise repository.EntityNotFoundError(f"Category with id {category_id} not found")
+        return Category(id=new_name, name=new_name)
 
     def delete_category(self, category_id: str) -> int:
         """Delete the category; returns the number of products affected.
@@ -224,7 +236,12 @@ class MongoProductRepository(ProductRepository):
         category.
         """
         LOGGER.info("delete_category(%r)", category_id)
-        raise NotImplementedError("TODO: implement 'delete_category' using MongoDB")
+        # raise NotImplementedError("TODO: implement 'delete_category' using MongoDB")
+        result = self._db[PRODUCT_COLLECTION_NAME].update_many(
+            {"category": category_id},
+            {"$set": {"category": None}}
+        )
+        return result.modified_count
 
     def list_brands(self) -> list[Brand]:
         """Return every brand, sorted by name ascending (codepoint order).
@@ -233,7 +250,9 @@ class MongoProductRepository(ProductRepository):
         name.
         """
         LOGGER.info("list_brands()")
-        raise NotImplementedError("TODO: implement 'list_brands' using MongoDB")
+        # raise NotImplementedError("TODO: implement 'list_brands' using MongoDB")
+        cursor = self._db[PRODUCT_COLLECTION_NAME].find().distinct("brand")
+        return [Brand(id=brand, name=brand) for brand in cursor]
 
     def get_brand(self, brand_id: str) -> Brand | None:
         """Return the brand with ``brand_id`` or ``None``.
@@ -242,7 +261,11 @@ class MongoProductRepository(ProductRepository):
         created implicitly when products are saved with an unknown name.
         """
         LOGGER.info("get_brand(%r)", brand_id)
-        raise NotImplementedError("TODO: implement 'get_brand' using MongoDB")
+        # raise NotImplementedError("TODO: implement 'get_brand' using MongoDB")
+        cursor = self._db[PRODUCT_COLLECTION_NAME].find({"brand": brand_id})
+        if cursor:
+            return Brand(id=cursor[0]["brand"], name=cursor[0]["brand"])
+        return None
 
     def rename_brand(self, brand_id: str, new_name: str) -> Brand:
         """Rename the brand; ``new_name`` is trimmed.
@@ -256,7 +279,14 @@ class MongoProductRepository(ProductRepository):
         the renamed entity.
         """
         LOGGER.info("rename_brand(%r, %r)", brand_id, new_name)
-        raise NotImplementedError("TODO: implement 'rename_brand' using MongoDB")
+        # raise NotImplementedError("TODO: implement 'rename_brand' using MongoDB")
+        result = self._db[PRODUCT_COLLECTION_NAME].update_many(
+            {"brand": brand_id},
+            {"$set": {"brand": new_name}}
+        )
+        if result.matched_count == 0:
+            raise repository.EntityNotFoundError(f"Brand with id {brand_id} not found")
+        return Brand(id=new_name, name=new_name)
 
     def delete_brand(self, brand_id: str) -> int:
         """Delete the brand; returns the number of products affected.
@@ -268,4 +298,9 @@ class MongoProductRepository(ProductRepository):
         brand.
         """
         LOGGER.info("delete_brand(%r)", brand_id)
-        raise NotImplementedError("TODO: implement 'delete_brand' using MongoDB")
+        # raise NotImplementedError("TODO: implement 'delete_brand' using MongoDB")
+        result = self._db[PRODUCT_COLLECTION_NAME].update_many(
+            {"brand": brand_id},
+            {"$set": {"brand": None}}
+        )
+        return result.modified_count
